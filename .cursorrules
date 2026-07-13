@@ -1,0 +1,38 @@
+# Cursor Rules — L&D Framework Builder
+
+You are helping build a Next.js 14 (App Router) + TypeScript app with two AI
+tools: a Competency BARS generator and a Learning Objective & Micro-Assessment
+builder. Both share a provider-agnostic LLM layer.
+
+## Golden rules
+
+- NEVER hardcode API keys or secrets. Read them from environment variables at
+  request time. `.env.local` is git-ignored.
+- NEVER expose the API key to the browser. All LLM calls run server-side inside
+  `app/api/**/route.ts`.
+- ALWAYS validate and sanitise user input before sending it to the model
+  (see `lib/bars/validation.ts`, `lib/objectives/validation.ts`).
+- Keep AI-independent logic (validation, prompt building, response parsing) as
+  PURE functions in `lib/` so they can be unit-tested without the network.
+- The only file allowed to make network calls is `lib/llm.ts`.
+- Mirror the existing structure: each tool has its own
+  `validation.ts` / `prompt.ts` / `parse.ts` under `lib/<tool>/` plus a route
+  under `app/api/<tool>/`.
+
+## Code style
+
+- TypeScript strict mode. Prefer explicit types on exported functions.
+- Small, single-purpose functions. Thin API routes.
+- Handle errors gracefully: return a user-safe message, log details server-side.
+- Use Tailwind utility classes for styling; no inline style objects.
+
+## Testing
+
+- Every new pure function in `lib/` gets a Vitest test in `tests/`.
+- Run `npm test` before committing.
+
+## Do not
+
+- Do not add a database or auth unless explicitly requested (MVP is stateless).
+- Do not introduce new dependencies without a clear reason.
+- Do not commit `.env`, `.env.local`, or `node_modules`.
