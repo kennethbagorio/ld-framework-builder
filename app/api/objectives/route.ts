@@ -1,0 +1,37 @@
+// app/api/objectives/route.ts
+import { NextResponse } from "next/server";
+import { validateObjectivesInput } from "@/lib/objectives/validation";
+import { buildObjectivesPrompt, OBJECTIVES_SYSTEM_PROMPT } from "@/lib/objectives/prompt";
+import { parseObjectivesResponse } from "@/lib/objectives/parse";
+import { callLlm } from "@/lib/llm";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(request: Request) {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
+  }
+
+  const validation = validateObjectivesInput(body);
+  if (!validation.ok || !validation.value) {
+    return NextResponse.json({ error: validation.errors.join(" ") }, { status: 400 });
+  }
+
+  try {
+    const prompt = buildObjectivesPrompt(validation.value);
+    const raw = await callLlm({ system: OBJECTIVES_SYSTEM_PROMPT, prompt });
+    const result = parseObjectivesResponse(raw);
+    return NextResponse.json(result, { status: 200 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error.";
+    console.error("Objectives generation failed:", message);
+    return NextResponse.json(
+      { error: "Could not generate the learning content. Please try again." },
+      { status: 500 }
+    );
+  }
+}
